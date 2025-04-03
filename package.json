@@ -1,0 +1,21 @@
+{
+  "name": "webxr-nature-scene",
+  "version": "1.0.0",
+  "description": "WebXRで豪華な自然空間を体験するVRアプリケーション",
+  "main": "index.js",
+  "scripts": {
+    "start": "http-server . -p 8080 -c-1 --cors"
+  },
+  "dependencies": {
+    "http-server": "^14.1.1"
+  },
+  "keywords": [
+    "webxr",
+    "vr",
+    "threejs",
+    "3d",
+    "virtual-reality"
+  ],
+  "author": "",
+  "license": "MIT"
+} 
