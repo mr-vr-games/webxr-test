@@ -25,33 +25,56 @@ renderer.xr.enabled = true;
 renderer.xr.setReferenceSpaceType('local-floor');
 document.body.appendChild(VRButton.createButton(renderer));
 
+// ログ表示用の関数
+function log(message) {
+    const logContainer = document.getElementById('log-container');
+    const logEntry = document.createElement('div');
+    logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+    logContainer.appendChild(logEntry);
+    logContainer.scrollTop = logContainer.scrollHeight;
+}
+
 // VRモード開始ボタンのカスタマイズ
 const enterVRButton = document.getElementById('enter-vr-button');
 enterVRButton.addEventListener('click', async () => {
     try {
+        log('VRセッションの開始を試みています...');
+        
         if (!navigator.xr) {
-            alert('WebXRはこのブラウザでサポートされていません。');
+            const message = 'WebXRはこのブラウザでサポートされていません。';
+            log(message);
+            alert(message);
             return;
         }
+
+        log('WebXR APIが利用可能です');
+        log('VRセッションをリクエストしています...');
 
         const session = await navigator.xr.requestSession('immersive-vr', {
             requiredFeatures: ['local-floor']
         });
         
+        log('VRセッションが開始されました');
+        log('レンダラーにセッションを設定しています...');
+        
         await renderer.xr.setSession(session);
+        log('レンダラーにセッションが設定されました');
         
         // VRセッション終了時の処理
         session.addEventListener('end', () => {
+            log('VRセッションが終了しました');
             renderer.xr.setSession(null);
         });
     } catch (error) {
-        console.error('VRセッションの開始に失敗しました:', error);
-        alert('VRセッションの開始に失敗しました。\n' + error.message);
+        const errorMessage = `VRセッションの開始に失敗しました: ${error.message}`;
+        log(errorMessage);
+        alert(errorMessage);
     }
 });
 
 // VRセッション開始時の処理
 function onSessionStarted(session) {
+    log('VRセッションが開始されました');
     renderer.xr.setSession(session);
 }
 
@@ -360,4 +383,7 @@ window.addEventListener('resize', () => {
 renderer.setAnimationLoop(() => {
     controls.update();
     renderer.render(scene, camera);
-}); 
+});
+
+// 初期化ログ
+log('アプリケーションを初期化しています...'); 
