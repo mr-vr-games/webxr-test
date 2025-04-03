@@ -5,10 +5,29 @@ import { VRButton } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js
 import { Sky } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/objects/Sky.js';
 import { Water } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/objects/Water.js';
 
+// ログ表示用の関数
+function log(message) {
+    const logContainer = document.getElementById('log-container');
+    if (!logContainer) {
+        console.error('ログコンテナが見つかりません');
+        return;
+    }
+    const logEntry = document.createElement('div');
+    logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+    logContainer.appendChild(logEntry);
+    logContainer.scrollTop = logContainer.scrollHeight;
+}
+
+// 初期化ログ
+log('アプリケーションを初期化しています...');
+
 // シーン、カメラ、レンダラーの設定
 const scene = new THREE.Scene();
+log('シーンを作成しました');
+
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 camera.position.set(0, 1.6, 5);
+log('カメラを設定しました');
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -19,58 +38,60 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 0.5;
 document.body.appendChild(renderer.domElement);
+log('レンダラーを設定しました');
 
 // VRの設定
 renderer.xr.enabled = true;
 renderer.xr.setReferenceSpaceType('local-floor');
-document.body.appendChild(VRButton.createButton(renderer));
+log('WebXRを有効化しました');
 
-// ログ表示用の関数
-function log(message) {
-    const logContainer = document.getElementById('log-container');
-    const logEntry = document.createElement('div');
-    logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
-    logContainer.appendChild(logEntry);
-    logContainer.scrollTop = logContainer.scrollHeight;
-}
+// VRボタンの作成
+const vrButton = VRButton.createButton(renderer);
+document.body.appendChild(vrButton);
+log('VRボタンを作成しました');
 
 // VRモード開始ボタンのカスタマイズ
 const enterVRButton = document.getElementById('enter-vr-button');
-enterVRButton.addEventListener('click', async () => {
-    try {
-        log('VRセッションの開始を試みています...');
-        
-        if (!navigator.xr) {
-            const message = 'WebXRはこのブラウザでサポートされていません。';
-            log(message);
-            alert(message);
-            return;
+if (!enterVRButton) {
+    log('エラー: VR開始ボタンが見つかりません');
+} else {
+    enterVRButton.addEventListener('click', async () => {
+        try {
+            log('VRセッションの開始を試みています...');
+            
+            if (!navigator.xr) {
+                const message = 'WebXRはこのブラウザでサポートされていません。';
+                log(message);
+                alert(message);
+                return;
+            }
+
+            log('WebXR APIが利用可能です');
+            log('VRセッションをリクエストしています...');
+
+            const session = await navigator.xr.requestSession('immersive-vr', {
+                requiredFeatures: ['local-floor']
+            });
+            
+            log('VRセッションが開始されました');
+            log('レンダラーにセッションを設定しています...');
+            
+            await renderer.xr.setSession(session);
+            log('レンダラーにセッションが設定されました');
+            
+            // VRセッション終了時の処理
+            session.addEventListener('end', () => {
+                log('VRセッションが終了しました');
+                renderer.xr.setSession(null);
+            });
+        } catch (error) {
+            const errorMessage = `VRセッションの開始に失敗しました: ${error.message}`;
+            log(errorMessage);
+            alert(errorMessage);
         }
-
-        log('WebXR APIが利用可能です');
-        log('VRセッションをリクエストしています...');
-
-        const session = await navigator.xr.requestSession('immersive-vr', {
-            requiredFeatures: ['local-floor']
-        });
-        
-        log('VRセッションが開始されました');
-        log('レンダラーにセッションを設定しています...');
-        
-        await renderer.xr.setSession(session);
-        log('レンダラーにセッションが設定されました');
-        
-        // VRセッション終了時の処理
-        session.addEventListener('end', () => {
-            log('VRセッションが終了しました');
-            renderer.xr.setSession(null);
-        });
-    } catch (error) {
-        const errorMessage = `VRセッションの開始に失敗しました: ${error.message}`;
-        log(errorMessage);
-        alert(errorMessage);
-    }
-});
+    });
+    log('VR開始ボタンのイベントリスナーを設定しました');
+}
 
 // VRセッション開始時の処理
 function onSessionStarted(session) {
@@ -383,7 +404,4 @@ window.addEventListener('resize', () => {
 renderer.setAnimationLoop(() => {
     controls.update();
     renderer.render(scene, camera);
-});
-
-// 初期化ログ
-log('アプリケーションを初期化しています...'); 
+}); 
