@@ -27,15 +27,30 @@ document.body.appendChild(VRButton.createButton(renderer));
 
 // VRモード開始ボタンのカスタマイズ
 const enterVRButton = document.getElementById('enter-vr-button');
-enterVRButton.addEventListener('click', () => {
-    renderer.xr.setSession(null).then(() => {
-        renderer.xr.getSession()?.end();
-    });
-    navigator.xr?.requestSession('immersive-vr', {
-        requiredFeatures: ['local-floor']
-    }).then(onSessionStarted);
+enterVRButton.addEventListener('click', async () => {
+    try {
+        if (!navigator.xr) {
+            alert('WebXRはこのブラウザでサポートされていません。');
+            return;
+        }
+
+        const session = await navigator.xr.requestSession('immersive-vr', {
+            requiredFeatures: ['local-floor']
+        });
+        
+        await renderer.xr.setSession(session);
+        
+        // VRセッション終了時の処理
+        session.addEventListener('end', () => {
+            renderer.xr.setSession(null);
+        });
+    } catch (error) {
+        console.error('VRセッションの開始に失敗しました:', error);
+        alert('VRセッションの開始に失敗しました。\n' + error.message);
+    }
 });
 
+// VRセッション開始時の処理
 function onSessionStarted(session) {
     renderer.xr.setSession(session);
 }

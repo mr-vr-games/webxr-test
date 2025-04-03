@@ -26,6 +26,13 @@
             background-color: #45a049;
         }
     </style>
+    <!-- WebXR Polyfill -->
+    <script src="https://cdn.jsdelivr.net/npm/webxr-polyfill@latest/build/webxr-polyfill.js"></script>
+    <script>
+        if (navigator.xr === undefined) {
+            const polyfill = new WebXRPolyfill();
+        }
+    </script>
 </head>
 <body>
     <div id="enter-vr-container">
