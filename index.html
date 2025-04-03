@@ -20,11 +20,24 @@
             border-radius: 4px;
             cursor: pointer;
         }
+        #debug {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 14px;
+            max-width: 500px;
+            z-index: 100;
+        }
     </style>
 </head>
 <body>
     <div id="container"></div>
     <button id="vrButton">VRを開始</button>
+    <div id="debug"></div>
 
     <!-- Three.js r126 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r126/three.min.js"></script>
