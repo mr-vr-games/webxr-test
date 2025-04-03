@@ -83,11 +83,42 @@ function initialize() {
                     let supported = false;
                     try {
                         supported = await navigator.xr.isSessionSupported('immersive-vr');
+                        log('VRセッションサポート: ' + supported);
                     } catch (err) {
                         log(`XRセッションサポートチェックエラー: ${err.message}`);
                     }
                     
+                    // Quest用のチェック
+                    const isQuest = /Quest/.test(navigator.userAgent);
+                    log('Quest検出: ' + isQuest);
+                    
+                    // Vision Pro Safariのチェック（現時点ではvisionOSに固有のUA文字列はないが、将来的に確認）
+                    const isVisionOS = /visionOS/.test(navigator.userAgent) || /AppleWebKit/.test(navigator.userAgent) && /Safari/.test(navigator.userAgent);
+                    log('Vision Pro（可能性）検出: ' + isVisionOS);
+                    
                     if (!supported) {
+                        // Vision Proは標準のWebXRではなく独自実装の可能性があるため、特別処理
+                        if (isVisionOS) {
+                            log('Vision Pro（Safari）用の特別処理を試みます');
+                            
+                            // Vision Proの場合は、手動でレンダリングを継続
+                            renderer.setAnimationLoop(() => {
+                                controls.update();
+                                renderer.render(scene, camera);
+                            });
+                            
+                            try {
+                                // Vision Pro用の代替機能を試みる（将来的な対応用）
+                                if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.spatialMedia) {
+                                    log('Vision Proの拡張APIを検出しました');
+                                }
+                            } catch (e) {
+                                log('Vision Pro拡張機能のチェック中にエラー: ' + e.message);
+                            }
+                            
+                            return;
+                        }
+                        
                         const message = 'このデバイスはVRをサポートしていません。';
                         log(message);
                         alert(message);
@@ -97,10 +128,17 @@ function initialize() {
                     log('WebXR APIが利用可能です');
                     log('VRセッションをリクエストしています...');
 
-                    const session = await navigator.xr.requestSession('immersive-vr', {
-                        requiredFeatures: ['local-floor'],
-                        optionalFeatures: ['bounded-floor']
-                    });
+                    let sessionOptions = {
+                        requiredFeatures: ['local-floor']
+                    };
+                    
+                    // Questの場合は追加のオプションを設定
+                    if (isQuest) {
+                        sessionOptions.optionalFeatures = ['bounded-floor', 'hand-tracking'];
+                    }
+                    
+                    log('セッションオプション: ' + JSON.stringify(sessionOptions));
+                    const session = await navigator.xr.requestSession('immersive-vr', sessionOptions);
                     
                     log('VRセッションが開始されました');
                     log('レンダラーにセッションを設定しています...');
