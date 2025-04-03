@@ -1,57 +1,23 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>豪華なWebXR空間</title>
+    <meta charset="utf-8">
+    <title>WebXR 草原体験</title>
     <style>
-        body { margin: 0; overflow: hidden; }
-        canvas { display: block; }
-        #vrButton {
-            position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 12px 24px;
-            background: #4285F4;
-            color: white;
-            font-size: 16px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
+        body {
+            margin: 0;
+            overflow: hidden;
         }
-        #debug {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            background: rgba(0, 0, 0, 0.5);
-            color: white;
-            padding: 10px;
-            font-family: monospace;
-            font-size: 14px;
-            max-width: 500px;
-            z-index: 100;
+        canvas {
+            width: 100%;
+            height: 100%;
         }
     </style>
 </head>
 <body>
-    <div id="container"></div>
-    <button id="vrButton">VRを開始</button>
-    <div id="debug"></div>
-
-    <!-- Three.js r126 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r126/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.126.0/examples/js/controls/XRController.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.126.0/examples/js/controls/OrbitControls.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.126.0/examples/js/loaders/GLTFLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.126.0/examples/js/loaders/RGBELoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.126.0/examples/js/utils/BufferGeometryUtils.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.126.0/examples/js/libs/stats.min.js"></script>
-    
-    <!-- WebXR関連 -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.126.0/examples/js/webxr/VRButton.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.126.0/examples/js/webxr/XRControllerModelFactory.js"></script>
-    
-    <!-- メインスクリプト -->
     <script src="main.js"></script>
 </body>
 </html>
