@@ -23,6 +23,54 @@ function log(message) {
     }
 }
 
+// エラーログ表示用の関数
+function logError(message, error) {
+    try {
+        const logContainer = document.getElementById('log-container');
+        if (!logContainer) {
+            console.error('ログコンテナが見つかりません');
+            return;
+        }
+        const logEntry = document.createElement('div');
+        logEntry.style.color = '#ff6b6b';
+        logEntry.style.fontWeight = 'bold';
+        logEntry.textContent = `[${new Date().toLocaleTimeString()}] エラー: ${message}`;
+        if (error && error.message) {
+            const errorDetails = document.createElement('div');
+            errorDetails.style.color = '#ff9f9f';
+            errorDetails.style.fontSize = '12px';
+            errorDetails.style.marginLeft = '10px';
+            errorDetails.textContent = `詳細: ${error.message}`;
+            logEntry.appendChild(errorDetails);
+        }
+        logContainer.appendChild(logEntry);
+        logContainer.scrollTop = logContainer.scrollHeight;
+        console.error(message, error); // コンソールにも出力
+    } catch (err) {
+        console.error('エラーログ出力中にエラーが発生しました:', err);
+    }
+}
+
+// 成功ログ表示用の関数
+function logSuccess(message) {
+    try {
+        const logContainer = document.getElementById('log-container');
+        if (!logContainer) {
+            console.error('ログコンテナが見つかりません');
+            return;
+        }
+        const logEntry = document.createElement('div');
+        logEntry.style.color = '#4CAF50';
+        logEntry.style.fontWeight = 'bold';
+        logEntry.textContent = `[${new Date().toLocaleTimeString()}] 成功: ${message}`;
+        logContainer.appendChild(logEntry);
+        logContainer.scrollTop = logContainer.scrollHeight;
+        console.log('成功:', message); // コンソールにも出力
+    } catch (error) {
+        console.error('成功ログ出力中にエラーが発生しました:', error);
+    }
+}
+
 // ステータスメッセージ表示用の関数
 function showStatus(message, duration = 3000) {
     try {
@@ -102,17 +150,19 @@ function initialize() {
         // カスタムVRモード開始ボタン
         const enterVRButton = document.getElementById('enter-vr-button');
         if (!enterVRButton) {
-            log('エラー: カスタムVR開始ボタンが見つかりません');
+            logError('カスタムVR開始ボタンが見つかりません');
         } else {
-            log('カスタムVR開始ボタンが見つかりました');
+            logSuccess('カスタムVR開始ボタンが見つかりました');
             enterVRButton.addEventListener('click', async () => {
                 log('カスタムVRボタンがクリックされました');
+                showStatus('VRセッションの開始を試みています...', 3000);
+                
                 try {
                     log('カスタムVRセッションの開始を試みています...');
                     
                     if (!navigator.xr) {
                         const message = 'WebXRはこのブラウザでサポートされていません';
-                        log(message);
+                        logError(message);
                         showStatus(message, 5000);
                         return;
                     }
@@ -122,31 +172,37 @@ function initialize() {
                     let supported = false;
                     try {
                         supported = await navigator.xr.isSessionSupported('immersive-vr');
-                        log('VRセッションサポート: ' + supported);
+                        log(`VRセッションサポート: ${supported}`);
+                        if (supported) {
+                            logSuccess('VRセッションがサポートされています');
+                        } else {
+                            logError('VRセッションがサポートされていません');
+                        }
                     } catch (err) {
-                        log(`XRセッションサポートチェックエラー: ${err.message}`);
+                        logError(`XRセッションサポートチェックエラー: ${err.message}`, err);
                         showStatus(`エラーが発生しました: ${err.message}`, 5000);
                         return;
                     }
                     
                     // デバイス情報のログ出力
-                    log('ユーザーエージェント: ' + navigator.userAgent);
+                    log(`ユーザーエージェント: ${navigator.userAgent}`);
                     
                     // Quest用のチェック
                     const isQuest = /Quest/.test(navigator.userAgent);
-                    log('Quest検出: ' + isQuest);
+                    log(`Quest検出: ${isQuest}`);
                     
                     // Vision Pro Safariのチェック
                     const isVisionOS = /visionOS/.test(navigator.userAgent) || 
                                        (/AppleWebKit/.test(navigator.userAgent) && 
                                         /Safari/.test(navigator.userAgent) && 
                                         !(/Chrome/.test(navigator.userAgent)));
-                    log('Vision Pro（可能性）検出: ' + isVisionOS);
+                    log(`Vision Pro（可能性）検出: ${isVisionOS}`);
                     
                     if (!supported) {
                         // Vision Proは標準のWebXRではなく独自実装の可能性がある
                         if (isVisionOS) {
                             log('Vision Pro（Safari）用の特別処理を試みます');
+                            showStatus('Vision Pro用の特別処理を適用しています...', 3000);
                             
                             // Vision Proの場合は通常表示を継続
                             renderer.setAnimationLoop(() => {
@@ -158,13 +214,14 @@ function initialize() {
                         }
                         
                         const message = 'このデバイスはVRをサポートしていません';
-                        log(message);
+                        logError(message);
                         showStatus(message, 5000);
                         return;
                     }
 
-                    log('WebXRサポートを確認しました');
+                    logSuccess('WebXRサポートを確認しました');
                     log('VRセッションをリクエストしています...');
+                    showStatus('VRセッションをリクエストしています...', 3000);
 
                     // VRセッションのオプション設定
                     let sessionOptions = {
@@ -177,18 +234,19 @@ function initialize() {
                         sessionOptions.optionalFeatures = ['bounded-floor', 'hand-tracking'];
                     }
                     
-                    log('セッションオプション: ' + JSON.stringify(sessionOptions));
+                    log(`セッションオプション: ${JSON.stringify(sessionOptions)}`);
                     
                     // VRセッションをリクエスト
                     try {
                         const session = await navigator.xr.requestSession('immersive-vr', sessionOptions);
-                        log('VRセッションが正常に開始されました');
+                        logSuccess('VRセッションが正常に開始されました');
+                        showStatus('VRセッションが開始されました！', 3000);
                         
                         // レンダラーにセッションを設定
                         try {
                             log('レンダラーにセッションを設定しています...');
                             await renderer.xr.setSession(session);
-                            log('レンダラーにセッションが設定されました');
+                            logSuccess('レンダラーにセッションが設定されました');
                             
                             // コントローラーの設定
                             setupVRControllers(session, scene, renderer);
@@ -198,25 +256,25 @@ function initialize() {
                                 log('VRセッションが終了しました');
                                 renderer.xr.setSession(null);
                                 // コントローラーのイベントリスナーを削除
-                                controllers.forEach(controller => {
+                                window.vrControllers.forEach(controller => {
                                     controller.removeEventListener('selectstart', onControllerSelectStart);
                                     controller.removeEventListener('selectend', onControllerSelectEnd);
                                 });
                             });
                         } catch (setSessionError) {
-                            log(`レンダラーへのセッション設定エラー: ${setSessionError.message}`);
+                            logError(`レンダラーへのセッション設定エラー: ${setSessionError.message}`, setSessionError);
                             showStatus(`エラーが発生しました: ${setSessionError.message}`, 5000);
                             session.end();
                             throw setSessionError;
                         }
                     } catch (requestSessionError) {
-                        log(`VRセッションリクエストエラー: ${requestSessionError.message}`);
+                        logError(`VRセッションリクエストエラー: ${requestSessionError.message}`, requestSessionError);
                         showStatus(`エラーが発生しました: ${requestSessionError.message}`, 5000);
                         throw requestSessionError;
                     }
                 } catch (error) {
                     const errorMessage = `VRセッションの開始に失敗しました: ${error.message}`;
-                    log(errorMessage);
+                    logError(errorMessage, error);
                     showStatus(errorMessage, 5000);
                 }
             });
@@ -228,8 +286,8 @@ function initialize() {
             log('VRコントローラーのセットアップを開始...');
             
             try {
-                // コントローラーの配列
-                const controllers = [];
+                // コントローラーの配列をグローバルスコープで定義
+                window.vrControllers = [];
                 
                 // XRコントローラーモデルファクトリーのインスタンス
                 const controllerModelFactory = new XRControllerModelFactory();
@@ -259,7 +317,7 @@ function initialize() {
                                 log(`コントローラー${i+1}のグリップを作成しました`);
                             }
                             
-                            controllers.push({ controller, grip });
+                            window.vrControllers.push({ controller, grip });
                             
                             // コントローラーに視覚的な線を追加
                             const geometry = new THREE.BufferGeometry().setFromPoints([
@@ -278,7 +336,7 @@ function initialize() {
                     }
                 }
                 
-                log(`${controllers.length}個のコントローラーをセットアップしました`);
+                log(`${window.vrControllers.length}個のコントローラーをセットアップしました`);
                 
                 // アニメーションループでの移動処理
                 const tempVector = new THREE.Vector3();
@@ -287,7 +345,7 @@ function initialize() {
                 // XRアニメーションループを設定
                 renderer.setAnimationLoop((time, frame) => {
                     // コントローラーによる移動処理
-                    controllers.forEach(({ controller }) => {
+                    window.vrControllers.forEach(({ controller }) => {
                         if (controller.userData.isSelecting) {
                             controller.getWorldDirection(direction);
                             direction.negate();  // コントローラーが向いている方向に移動

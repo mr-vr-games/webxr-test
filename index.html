@@ -51,18 +51,28 @@
         }
         #log-container {
             position: fixed;
-            bottom: 100px;
+            top: 20px;
             left: 20px;
-            background-color: rgba(0, 0, 0, 0.7);
+            background-color: rgba(0, 0, 0, 0.8);
             color: white;
-            padding: 10px;
+            padding: 15px;
             border-radius: 4px;
-            max-height: 200px;
+            max-height: 300px;
             overflow-y: auto;
             font-family: monospace;
-            font-size: 12px;
+            font-size: 14px;
             z-index: 1000;
-            max-width: 300px;
+            max-width: 400px;
+            border: 2px solid #4CAF50;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+        #log-container div {
+            margin-bottom: 5px;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            padding-bottom: 5px;
+        }
+        #log-container div:last-child {
+            border-bottom: none;
         }
         #device-info {
             position: fixed;
