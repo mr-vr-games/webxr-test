@@ -1,199 +1,159 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>豪華なVR空間</title>
-    <style>
-        body { margin: 0; overflow: hidden; }
-        canvas { display: block; }
-        #enter-vr-container {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 1000;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
-        }
-        #enter-vr-button {
-            padding: 12px 24px;
-            font-size: 16px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            margin: 10px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            transition: background-color 0.3s;
-        }
-        #enter-vr-button:hover {
-            background-color: #45a049;
-        }
-        #status-message {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: rgba(0, 0, 0, 0.7);
-            color: white;
-            padding: 10px 20px;
-            border-radius: 4px;
-            display: none;
-            z-index: 1000;
-            max-width: 80%;
-            text-align: center;
-        }
-        #log-container {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            background-color: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 15px;
-            border-radius: 4px;
-            max-height: 300px;
-            overflow-y: auto;
-            font-family: monospace;
-            font-size: 14px;
-            z-index: 1000;
-            max-width: 400px;
-            border: 2px solid #4CAF50;
-            box-shadow: 0 0 10px rgba(0,0,0,0.5);
-        }
-        #log-container div {
-            margin-bottom: 5px;
-            border-bottom: 1px solid rgba(255,255,255,0.2);
-            padding-bottom: 5px;
-        }
-        #log-container div:last-child {
-            border-bottom: none;
-        }
-        #device-info {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background-color: rgba(0, 0, 0, 0.7);
-            color: white;
-            padding: 10px;
-            border-radius: 4px;
-            font-size: 12px;
-            z-index: 1000;
-        }
-        /* Vision Pro向けの特別なスタイル */
-        @media (hover: hover) and (pointer: fine) and (-webkit-backdrop-filter: blur(1px)) {
-            #vision-pro-info {
-                display: block;
-            }
-        }
-        #vision-pro-info {
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            background-color: rgba(0, 0, 0, 0.7);
-            color: white;
-            padding: 10px;
-            border-radius: 5px;
-            max-width: 300px;
-            font-family: system-ui;
-            z-index: 1000;
-            display: none;
-        }
-    </style>
-    <!-- WebXR Polyfill -->
-    <script src="https://cdn.jsdelivr.net/npm/webxr-polyfill@latest/build/webxr-polyfill.js"></script>
-    <script>
-        window.addEventListener('DOMContentLoaded', () => {
-            // WebXRポリフィルを適用
-            if (navigator.xr === undefined) {
-                console.log('WebXRポリフィルを適用します');
-                new WebXRPolyfill();
-            }
-
-            // ステータスメッセージの作成
-            if (!document.getElementById('status-message')) {
-                const statusMessage = document.createElement('div');
-                statusMessage.id = 'status-message';
-                document.body.appendChild(statusMessage);
-            }
-
-            function showStatus(message, duration = 5000) {
-                const statusMessage = document.getElementById('status-message');
-                if (statusMessage) {
-                    statusMessage.textContent = message;
-                    statusMessage.style.display = 'block';
-                    setTimeout(() => {
-                        statusMessage.style.display = 'none';
-                    }, duration);
-                }
-            }
-
-            // デバイス情報の表示
-            const deviceInfo = document.getElementById('device-info');
-            if (deviceInfo) {
-                deviceInfo.textContent = `ブラウザ: ${navigator.userAgent}`;
-            }
-
-            // Vision Pro向けの特別なメッセージを表示
-            const isVisionOS = /visionOS/.test(navigator.userAgent) || 
-                              (/AppleWebKit/.test(navigator.userAgent) && 
-                               /Safari/.test(navigator.userAgent) && 
-                               !(/Chrome/.test(navigator.userAgent)));
-                               
-            if (isVisionOS) {
-                const visionProInfo = document.getElementById('vision-pro-info');
-                if (visionProInfo) {
-                    visionProInfo.style.display = 'block';
-                }
-            }
-
-            // WebXRのサポート状況確認
-            if (navigator.xr) {
-                console.log('WebXR APIが利用可能です');
-                navigator.xr.isSessionSupported('immersive-vr')
-                    .then(supported => {
-                        if (!supported) {
-                            showStatus('このブラウザはVRをサポートしていますが、VRデバイスが接続されていないか、またはVRモードが有効になっていません。');
-                        } else {
-                            // 成功メッセージを短時間表示
-                            showStatus('VRデバイスが利用可能です。VRモードを開始ボタンを押してください。', 3000);
-                        }
-                    })
-                    .catch(err => {
-                        console.error('WebXRセッションのサポート確認エラー:', err);
-                        showStatus('WebXRセッションのサポート確認中にエラーが発生しました。');
-                    });
-            } else {
-                console.log('WebXR APIは利用できません');
-                showStatus('このブラウザはWebXR APIをサポートしていません。VR対応ブラウザ（Chrome、Firefox、Edgeなど）をご使用ください。');
-            }
-            
-            // Questデバイスかどうかをチェック
-            const isQuest = /Quest/.test(navigator.userAgent);
-            if (isQuest) {
-                showStatus('Oculus Questが検出されました。VRモードを開始ボタンを押してください。', 3000);
-            }
-        });
-    </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>豪華な草原VR体験</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+    }
+    #container {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+    }
+    #non-vr-start {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(to bottom, #4caf50, #2e7d32);
+      color: white;
+      z-index: 10;
+    }
+    #main-vr-button {
+      padding: 20px 50px;
+      font-size: 2em;
+      background-color: #8bc34a;
+      color: white;
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: all 0.3s;
+      box-shadow: 0 0 20px rgba(139, 195, 74, 0.8);
+      margin-top: 20px;
+    }
+    #main-vr-button:hover {
+      background-color: #689f38;
+      transform: scale(1.05);
+    }
+    #loading {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: rgba(0, 0, 0, 0.8);
+      color: white;
+      font-size: 2em;
+      z-index: 15;
+    }
+    .spinner {
+      border: 5px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top: 5px solid #ffffff;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+      margin-right: 20px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    #vr-info {
+      margin-top: 20px;
+      max-width: 80%;
+      text-align: center;
+      font-size: 1.2em;
+    }
+    #debug-info {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      color: white;
+      background-color: rgba(0, 0, 0, 0.5);
+      padding: 10px;
+      border-radius: 5px;
+      font-size: 12px;
+      z-index: 100;
+      max-width: 80%;
+      max-height: 30%;
+      overflow-y: auto;
+    }
+    #audio-info {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      color: white;
+      background-color: rgba(0, 0, 0, 0.5);
+      padding: 10px;
+      border-radius: 5px;
+      font-size: 14px;
+      z-index: 100;
+    }
+  </style>
 </head>
 <body>
-    <div id="log-container"></div>
-    <div id="enter-vr-container">
-        <button id="enter-vr-button">VRモードを開始</button>
-        <div style="font-size: 12px; color: white; text-align: center; margin-top: 5px;">
-            標準VRボタンまたはカスタムVRボタンを押してVRモードを開始
-        </div>
-    </div>
-    <div id="vision-pro-info">
-        Vision Pro で表示されています。現在、Vision Pro の Safari は標準の WebXR をサポートしていませんが、通常の3D表示として動作します。Vision Pro Native APIでの完全なVRサポートは近日追加予定です。
-    </div>
-    <div id="device-info"></div>
+  <div id="loading">
+    <div class="spinner"></div>
+    読み込み中...
+  </div>
+  
+  <div id="non-vr-start">
+    <h1>豪華な草原VR体験へようこそ</h1>
+    <button id="main-vr-button">VRモードで開始</button>
+    <div id="vr-info">Meta Questなどの対応VRデバイスが必要です</div>
+  </div>
+  
+  <div id="container"></div>
+  <div id="debug-info"></div>
+  <div id="audio-info">BGM: 停止</div>
 
-    <script type="module" src="./js/main.js"></script>
+  <!-- Three.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r126/three.min.js"></script>
+  
+  <!-- アプリケーションのJavaScriptファイル -->
+  <script src="js/main.js"></script>
+  <script src="js/scene.js"></script>
+  <script src="js/controllers.js"></script>
+  <script src="js/title.js"></script>
+  <script src="js/main-scene.js"></script>
+  <script src="js/environment.js"></script>
+  
+  <!-- 初期化スクリプト -->
+  <script>
+    // ページロード完了時に初期化
+    window.addEventListener('load', () => {
+      logDebug("ページ読み込み完了、初期化開始");
+      initBasicScene();
+      
+      // VRボタン設定
+      mainVrButton.addEventListener('click', startVR);
+      
+      // オーディオボタン設定
+      audioInfo.addEventListener('click', toggleBGM);
+      
+      // ローディング画面非表示
+      loading.style.display = 'none';
+      
+      logDebug("初期化完了");
+    });
+    
+    // 長時間ローディング解除用
+    setTimeout(() => {
+      if (loading.style.display !== 'none') {
+        logDebug("ローディングタイムアウト - 強制的に進行します");
+        loading.style.display = 'none';
+      }
+    }, 5000);
+  </script>
 </body>
 </html>
