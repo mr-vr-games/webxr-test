@@ -121,6 +121,7 @@ function initialize() {
 
         // VRの設定
         renderer.xr.enabled = true;
+        // 重要設定: local-floorリファレンススペースを設定
         renderer.xr.setReferenceSpaceType('local-floor');
         log('WebXRを有効化しました');
 
@@ -220,25 +221,18 @@ function initialize() {
                     }
 
                     logSuccess('WebXRサポートを確認しました');
-                    log('VRセッションをリクエストしています...');
+                    log('VRセッションをリクエストします');
                     showStatus('VRセッションをリクエストしています...', 3000);
 
-                    // VRセッションのオプション設定
-                    let sessionOptions = {
-                        requiredFeatures: ['local-floor']
-                    };
-                    
-                    // Questの場合は追加のオプションを設定
-                    if (isQuest) {
-                        log('Questデバイス用の設定を適用します');
-                        sessionOptions.optionalFeatures = ['bounded-floor', 'hand-tracking'];
-                    }
-                    
-                    log(`セッションオプション: ${JSON.stringify(sessionOptions)}`);
-                    
                     // VRセッションをリクエスト
                     try {
-                        const session = await navigator.xr.requestSession('immersive-vr', sessionOptions);
+                        log('VRセッションをリクエストします');
+                        
+                        // 重要設定: VRセッション開始時にlocal-floorを指定
+                        const session = await navigator.xr.requestSession('immersive-vr', {
+                            requiredFeatures: ['local-floor']
+                        });
+                        
                         logSuccess('VRセッションが正常に開始されました');
                         showStatus('VRセッションが開始されました！', 3000);
                         
@@ -256,10 +250,12 @@ function initialize() {
                                 log('VRセッションが終了しました');
                                 renderer.xr.setSession(null);
                                 // コントローラーのイベントリスナーを削除
-                                window.vrControllers.forEach(controller => {
-                                    controller.removeEventListener('selectstart', onControllerSelectStart);
-                                    controller.removeEventListener('selectend', onControllerSelectEnd);
-                                });
+                                if (window.vrControllers) {
+                                    window.vrControllers.forEach(controller => {
+                                        controller.removeEventListener('selectstart', onControllerSelectStart);
+                                        controller.removeEventListener('selectend', onControllerSelectEnd);
+                                    });
+                                }
                             });
                         } catch (setSessionError) {
                             logError(`レンダラーへのセッション設定エラー: ${setSessionError.message}`, setSessionError);
@@ -345,17 +341,19 @@ function initialize() {
                 // XRアニメーションループを設定
                 renderer.setAnimationLoop((time, frame) => {
                     // コントローラーによる移動処理
-                    window.vrControllers.forEach(({ controller }) => {
-                        if (controller.userData.isSelecting) {
-                            controller.getWorldDirection(direction);
-                            direction.negate();  // コントローラーが向いている方向に移動
-                            direction.y = 0;     // 水平移動のみ
-                            direction.normalize();
-                            tempVector.copy(direction).multiplyScalar(0.1);  // 移動速度
-                            
-                            camera.position.add(tempVector);
-                        }
-                    });
+                    if (window.vrControllers) {
+                        window.vrControllers.forEach(({ controller }) => {
+                            if (controller.userData && controller.userData.isSelecting) {
+                                controller.getWorldDirection(direction);
+                                direction.negate();  // コントローラーが向いている方向に移動
+                                direction.y = 0;     // 水平移動のみ
+                                direction.normalize();
+                                tempVector.copy(direction).multiplyScalar(0.1);  // 移動速度
+                                
+                                camera.position.add(tempVector);
+                            }
+                        });
+                    }
                     
                     controls.update();
                     renderer.render(scene, camera);
