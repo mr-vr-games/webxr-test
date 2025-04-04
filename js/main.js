@@ -23,6 +23,24 @@ function log(message) {
     }
 }
 
+// ステータスメッセージ表示用の関数
+function showStatus(message, duration = 3000) {
+    try {
+        const statusMessage = document.getElementById('status-message');
+        if (!statusMessage) {
+            console.error('ステータスメッセージ要素が見つかりません');
+            return;
+        }
+        statusMessage.textContent = message;
+        statusMessage.style.display = 'block';
+        setTimeout(() => {
+            statusMessage.style.display = 'none';
+        }, duration);
+    } catch (error) {
+        console.error('ステータスメッセージ表示中にエラーが発生しました:', error);
+    }
+}
+
 // DOMContentLoadedイベントで初期化を開始
 document.addEventListener('DOMContentLoaded', () => {
     log('DOMの読み込みが完了しました');
@@ -86,7 +104,9 @@ function initialize() {
         if (!enterVRButton) {
             log('エラー: カスタムVR開始ボタンが見つかりません');
         } else {
+            log('カスタムVR開始ボタンが見つかりました');
             enterVRButton.addEventListener('click', async () => {
+                log('カスタムVRボタンがクリックされました');
                 try {
                     log('カスタムVRセッションの開始を試みています...');
                     
