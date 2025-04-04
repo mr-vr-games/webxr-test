@@ -58,28 +58,47 @@ function initialize() {
         renderer.xr.setReferenceSpaceType('local-floor');
         log('WebXRを有効化しました');
 
-        // VRボタンの作成
-        const vrButton = VRButton.createButton(renderer);
-        document.body.appendChild(vrButton);
-        log('VRボタンを作成しました');
+        // VRボタンの作成と追加（正しい位置に配置）
+        try {
+            const vrButton = VRButton.createButton(renderer);
+            // スタイルを追加してボタンを目立たせる
+            vrButton.style.position = 'absolute';
+            vrButton.style.bottom = '80px'; // enter-vr-buttonの上に配置
+            vrButton.style.left = '50%';
+            vrButton.style.transform = 'translateX(-50%)';
+            vrButton.style.padding = '12px 24px';
+            vrButton.style.backgroundColor = '#2196F3';
+            vrButton.style.color = 'white';
+            vrButton.style.border = 'none';
+            vrButton.style.borderRadius = '4px';
+            vrButton.style.fontSize = '16px';
+            vrButton.style.fontWeight = 'bold';
+            vrButton.style.cursor = 'pointer';
+            vrButton.style.zIndex = '200';
+            document.body.appendChild(vrButton);
+            log('標準VRボタンを作成しました');
+        } catch (e) {
+            log('標準VRボタンの作成に失敗しました: ' + e.message);
+        }
 
-        // VRモード開始ボタンのカスタマイズ
+        // カスタムVRモード開始ボタン
         const enterVRButton = document.getElementById('enter-vr-button');
         if (!enterVRButton) {
-            log('エラー: VR開始ボタンが見つかりません');
+            log('エラー: カスタムVR開始ボタンが見つかりません');
         } else {
             enterVRButton.addEventListener('click', async () => {
                 try {
-                    log('VRセッションの開始を試みています...');
+                    log('カスタムVRセッションの開始を試みています...');
                     
                     if (!navigator.xr) {
-                        const message = 'WebXRはこのブラウザでサポートされていません。';
+                        const message = 'WebXRはこのブラウザでサポートされていません';
                         log(message);
                         alert(message);
                         return;
                     }
 
-                    // XRがサポートされているか確認
+                    // WebXRがサポートされているか確認
+                    log('WebXRサポートを確認中...');
                     let supported = false;
                     try {
                         supported = await navigator.xr.isSessionSupported('immersive-vr');
@@ -88,153 +107,195 @@ function initialize() {
                         log(`XRセッションサポートチェックエラー: ${err.message}`);
                     }
                     
+                    // デバイス情報のログ出力
+                    log('ユーザーエージェント: ' + navigator.userAgent);
+                    
                     // Quest用のチェック
                     const isQuest = /Quest/.test(navigator.userAgent);
                     log('Quest検出: ' + isQuest);
                     
-                    // Vision Pro Safariのチェック（現時点ではvisionOSに固有のUA文字列はないが、将来的に確認）
-                    const isVisionOS = /visionOS/.test(navigator.userAgent) || /AppleWebKit/.test(navigator.userAgent) && /Safari/.test(navigator.userAgent);
+                    // Vision Pro Safariのチェック
+                    const isVisionOS = /visionOS/.test(navigator.userAgent) || 
+                                       (/AppleWebKit/.test(navigator.userAgent) && 
+                                        /Safari/.test(navigator.userAgent) && 
+                                        !(/Chrome/.test(navigator.userAgent)));
                     log('Vision Pro（可能性）検出: ' + isVisionOS);
                     
                     if (!supported) {
-                        // Vision Proは標準のWebXRではなく独自実装の可能性があるため、特別処理
+                        // Vision Proは標準のWebXRではなく独自実装の可能性がある
                         if (isVisionOS) {
                             log('Vision Pro（Safari）用の特別処理を試みます');
                             
-                            // Vision Proの場合は、手動でレンダリングを継続
+                            // Vision Proの場合は通常表示を継続
                             renderer.setAnimationLoop(() => {
                                 controls.update();
                                 renderer.render(scene, camera);
                             });
                             
-                            try {
-                                // Vision Pro用の代替機能を試みる（将来的な対応用）
-                                if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.spatialMedia) {
-                                    log('Vision Proの拡張APIを検出しました');
-                                }
-                            } catch (e) {
-                                log('Vision Pro拡張機能のチェック中にエラー: ' + e.message);
-                            }
-                            
                             return;
                         }
                         
-                        const message = 'このデバイスはVRをサポートしていません。';
+                        const message = 'このデバイスはVRをサポートしていません';
                         log(message);
                         alert(message);
                         return;
                     }
 
-                    log('WebXR APIが利用可能です');
+                    log('WebXRサポートを確認しました');
                     log('VRセッションをリクエストしています...');
 
+                    // VRセッションのオプション設定
                     let sessionOptions = {
                         requiredFeatures: ['local-floor']
                     };
                     
                     // Questの場合は追加のオプションを設定
                     if (isQuest) {
+                        log('Questデバイス用の設定を適用します');
                         sessionOptions.optionalFeatures = ['bounded-floor', 'hand-tracking'];
                     }
                     
                     log('セッションオプション: ' + JSON.stringify(sessionOptions));
-                    const session = await navigator.xr.requestSession('immersive-vr', sessionOptions);
                     
-                    log('VRセッションが開始されました');
-                    log('レンダラーにセッションを設定しています...');
-                    
-                    await renderer.xr.setSession(session);
-                    log('レンダラーにセッションが設定されました');
-                    
-                    // VRセッション終了時の処理
-                    session.addEventListener('end', () => {
-                        log('VRセッションが終了しました');
-                        renderer.xr.setSession(null);
-                    });
+                    // VRセッションをリクエスト
+                    try {
+                        const session = await navigator.xr.requestSession('immersive-vr', sessionOptions);
+                        log('VRセッションが正常に開始されました');
+                        
+                        // レンダラーにセッションを設定
+                        try {
+                            log('レンダラーにセッションを設定しています...');
+                            await renderer.xr.setSession(session);
+                            log('レンダラーにセッションが設定されました');
+                            
+                            // コントローラーの設定
+                            setupVRControllers(session, scene, renderer);
+                            
+                            // VRセッション終了時の処理
+                            session.addEventListener('end', () => {
+                                log('VRセッションが終了しました');
+                                renderer.xr.setSession(null);
+                            });
+                        } catch (setSessionError) {
+                            log(`レンダラーへのセッション設定エラー: ${setSessionError.message}`);
+                            session.end(); // セッション設定に失敗した場合はセッションを終了
+                            throw setSessionError;
+                        }
+                    } catch (requestSessionError) {
+                        log(`VRセッションリクエストエラー: ${requestSessionError.message}`);
+                        throw requestSessionError;
+                    }
                 } catch (error) {
                     const errorMessage = `VRセッションの開始に失敗しました: ${error.message}`;
                     log(errorMessage);
                     alert(errorMessage);
                 }
             });
-            log('VR開始ボタンのイベントリスナーを設定しました');
+            log('カスタムVR開始ボタンのイベントリスナーを設定しました');
         }
 
-        // VRセッション開始時の処理
-        function onSessionStarted(session) {
-            log('VRセッションが開始されました');
-            renderer.xr.setSession(session);
+        // VRコントローラーの設定関数
+        function setupVRControllers(session, scene, renderer) {
+            log('VRコントローラーのセットアップを開始...');
+            
+            try {
+                // コントローラーの配列
+                const controllers = [];
+                
+                // XRコントローラーモデルファクトリーのインスタンス
+                const controllerModelFactory = new XRControllerModelFactory();
+                
+                // 左右のコントローラーを取得
+                for (let i = 0; i < 2; i++) {
+                    try {
+                        // コントローラーの作成
+                        const controller = renderer.xr.getController(i);
+                        if (controller) {
+                            log(`コントローラー${i+1}を取得しました`);
+                            controller.addEventListener('connected', (event) => {
+                                log(`コントローラー${i+1}が接続されました: ${event.data.gamepad ? 'ゲームパッドあり' : 'ゲームパッドなし'}`);
+                            });
+                            controller.addEventListener('disconnected', () => {
+                                log(`コントローラー${i+1}が切断されました`);
+                            });
+                            controller.addEventListener('selectstart', onControllerSelectStart);
+                            controller.addEventListener('selectend', onControllerSelectEnd);
+                            scene.add(controller);
+                            
+                            // グリップの作成
+                            const grip = renderer.xr.getControllerGrip(i);
+                            if (grip) {
+                                grip.add(controllerModelFactory.createControllerModel(grip));
+                                scene.add(grip);
+                                log(`コントローラー${i+1}のグリップを作成しました`);
+                            }
+                            
+                            controllers.push({ controller, grip });
+                            
+                            // コントローラーに視覚的な線を追加
+                            const geometry = new THREE.BufferGeometry().setFromPoints([
+                                new THREE.Vector3(0, 0, 0),
+                                new THREE.Vector3(0, 0, -1)
+                            ]);
+                            
+                            const line = new THREE.Line(geometry);
+                            line.scale.z = 5;
+                            controller.add(line.clone());
+                        } else {
+                            log(`コントローラー${i+1}の取得に失敗しました`);
+                        }
+                    } catch (controllerError) {
+                        log(`コントローラー${i+1}のセットアップエラー: ${controllerError.message}`);
+                    }
+                }
+                
+                log(`${controllers.length}個のコントローラーをセットアップしました`);
+                
+                // アニメーションループでの移動処理
+                const tempVector = new THREE.Vector3();
+                const direction = new THREE.Vector3();
+                
+                // XRアニメーションループを設定
+                renderer.setAnimationLoop((time, frame) => {
+                    // コントローラーによる移動処理
+                    controllers.forEach(({ controller }) => {
+                        if (controller.userData.isSelecting) {
+                            controller.getWorldDirection(direction);
+                            direction.negate();  // コントローラーが向いている方向に移動
+                            direction.y = 0;     // 水平移動のみ
+                            direction.normalize();
+                            tempVector.copy(direction).multiplyScalar(0.1);  // 移動速度
+                            
+                            camera.position.add(tempVector);
+                        }
+                    });
+                    
+                    controls.update();
+                    renderer.render(scene, camera);
+                });
+                
+                log('XRアニメーションループを設定しました');
+            } catch (error) {
+                log(`VRコントローラーのセットアップエラー: ${error.message}`);
+            }
+        }
+
+        // コントローラーのセレクト開始イベント
+        function onControllerSelectStart(event) {
+            log('コントローラーのセレクト開始');
+            this.userData.isSelecting = true;
+        }
+
+        // コントローラーのセレクト終了イベント
+        function onControllerSelectEnd(event) {
+            log('コントローラーのセレクト終了');
+            this.userData.isSelecting = false;
         }
 
         // コントロールの設定（非VRモード用）
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.target.set(0, 1, 0);
         controls.update();
-
-        // VRセッション中のナビゲーション
-        function setupVRNavigation() {
-            // VRコントローラーの取得
-            const controllers = [];
-            const controllerModelFactory = new XRControllerModelFactory();
-            
-            for (let i = 0; i < 2; i++) {
-                const controller = renderer.xr.getController(i);
-                controller.addEventListener('selectstart', onSelectStart);
-                controller.addEventListener('selectend', onSelectEnd);
-                scene.add(controller);
-                
-                const grip = renderer.xr.getControllerGrip(i);
-                grip.add(controllerModelFactory.createControllerModel(grip));
-                scene.add(grip);
-                
-                controllers.push({ controller, grip });
-            }
-            
-            // コントローラー用の視覚的な表示
-            const geometry = new THREE.BufferGeometry().setFromPoints([
-                new THREE.Vector3(0, 0, 0),
-                new THREE.Vector3(0, 0, -1)
-            ]);
-            
-            const line = new THREE.Line(geometry);
-            line.scale.z = 5;
-            
-            controllers.forEach(({ controller }) => {
-                controller.add(line.clone());
-            });
-            
-            // 移動操作の処理
-            function onSelectStart(event) {
-                log('コントローラーのセレクト開始');
-                this.userData.isSelecting = true;
-            }
-            
-            function onSelectEnd(event) {
-                log('コントローラーのセレクト終了');
-                this.userData.isSelecting = false;
-            }
-            
-            // アニメーションループでの移動処理
-            const tempVector = new THREE.Vector3();
-            const direction = new THREE.Vector3();
-            
-            renderer.setAnimationLoop((time, frame) => {
-                controllers.forEach(({ controller }) => {
-                    if (controller.userData.isSelecting) {
-                        controller.getWorldDirection(direction);
-                        direction.negate();  // コントローラーが向いている方向に移動
-                        direction.y = 0;     // 水平移動のみ
-                        direction.normalize();
-                        tempVector.copy(direction).multiplyScalar(0.1);  // 移動速度
-                        
-                        camera.position.add(tempVector);
-                    }
-                });
-                
-                controls.update();
-                renderer.render(scene, camera);
-            });
-        }
 
         // XRControllerModelFactoryを実装
         class XRControllerModelFactory {
@@ -261,12 +322,6 @@ function initialize() {
                 
                 return group;
             }
-        }
-
-        // コントローラーの初期化（VRセッションが利用可能な場合）
-        if (navigator.xr) {
-            setupVRNavigation();
-            log('VRコントローラーを初期化しました');
         }
 
         // 環境光と平行光源
@@ -565,7 +620,7 @@ function initialize() {
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        // アニメーションループ設定（VRコントローラーが利用可能でない場合のみ）
+        // アニメーションループ設定
         if (!navigator.xr) {
             log('通常のアニメーションループを使用します');
             renderer.setAnimationLoop(() => {
@@ -573,8 +628,8 @@ function initialize() {
                 renderer.render(scene, camera);
             });
         } else {
-            log('VR対応のアニメーションループを使用します');
-            // setupVRNavigationで既にアニメーションループを設定済み
+            log('VR対応のアニメーションループを使用します（VRセッション開始時に設定されます）');
+            // アニメーションループはVRセッション開始時にsetupVRControllersで設定
         }
     } catch (error) {
         log(`初期化中にエラーが発生しました: ${error.message}`);
