@@ -93,7 +93,7 @@ function initialize() {
                     if (!navigator.xr) {
                         const message = 'WebXRはこのブラウザでサポートされていません';
                         log(message);
-                        alert(message);
+                        showStatus(message, 5000);
                         return;
                     }
 
@@ -105,6 +105,8 @@ function initialize() {
                         log('VRセッションサポート: ' + supported);
                     } catch (err) {
                         log(`XRセッションサポートチェックエラー: ${err.message}`);
+                        showStatus(`エラーが発生しました: ${err.message}`, 5000);
+                        return;
                     }
                     
                     // デバイス情報のログ出力
@@ -137,7 +139,7 @@ function initialize() {
                         
                         const message = 'このデバイスはVRをサポートしていません';
                         log(message);
-                        alert(message);
+                        showStatus(message, 5000);
                         return;
                     }
 
@@ -175,20 +177,27 @@ function initialize() {
                             session.addEventListener('end', () => {
                                 log('VRセッションが終了しました');
                                 renderer.xr.setSession(null);
+                                // コントローラーのイベントリスナーを削除
+                                controllers.forEach(controller => {
+                                    controller.removeEventListener('selectstart', onControllerSelectStart);
+                                    controller.removeEventListener('selectend', onControllerSelectEnd);
+                                });
                             });
                         } catch (setSessionError) {
                             log(`レンダラーへのセッション設定エラー: ${setSessionError.message}`);
-                            session.end(); // セッション設定に失敗した場合はセッションを終了
+                            showStatus(`エラーが発生しました: ${setSessionError.message}`, 5000);
+                            session.end();
                             throw setSessionError;
                         }
                     } catch (requestSessionError) {
                         log(`VRセッションリクエストエラー: ${requestSessionError.message}`);
+                        showStatus(`エラーが発生しました: ${requestSessionError.message}`, 5000);
                         throw requestSessionError;
                     }
                 } catch (error) {
                     const errorMessage = `VRセッションの開始に失敗しました: ${error.message}`;
                     log(errorMessage);
-                    alert(errorMessage);
+                    showStatus(errorMessage, 5000);
                 }
             });
             log('カスタムVR開始ボタンのイベントリスナーを設定しました');
@@ -613,11 +622,15 @@ function initialize() {
 
         addVehicle();
 
-        // リサイズ対応
+        // リサイズイベントのデバウンス
+        let resizeTimeout;
         window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }, 250);
         });
 
         // アニメーションループ設定
